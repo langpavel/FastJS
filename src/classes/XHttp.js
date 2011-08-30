@@ -2,7 +2,14 @@
  * Wrapper for XMLHttpRequest
  */
 FastJS.XHttp = function() {
-	this._r = FastJS.XHttp.createRequest(); 
+	this._r = FastJS.XHttp.createRequest();
+	this.readyState = 0;
+	var slf = this;
+	this._r.onreadystatechange = function() {
+		slf.readyState = this.readyState;
+		if(typeof slf.onreadystatechange === 'function')
+			slf.onreadystatechange.call(slf);
+	};
 };
 
 /*
@@ -21,6 +28,29 @@ FastJS.XHttp.createRequest = (function()
 	}
 	return null;
 })();
+
+FastJS.XHttp.UNSENT = 0;
+FastJS.XHttp.OPENED = 1;
+FastJS.XHttp.HEADERS_RECEIVED = 2;
+FastJS.XHttp.LOADING = 3;
+FastJS.XHttp.DONE = 4;
+
+FastJS.XHttp.prototype.open = function(method, url, async, user, password) {
+	this._r.open(method, url, async, user, password);
+};
+
+FastJS.XHttp.prototype.setRequestHeader = function(header, value) {
+	this._r.setRequestHeader(header, value);
+};
+
+FastJS.XHttp.prototype.send = function(data) {
+	this._r.send(data);
+};
+
+FastJS.XHttp.prototype.abort = function() {
+	this._r.abort();
+};
+
 
 /*
 
