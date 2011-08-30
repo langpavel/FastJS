@@ -1,25 +1,3 @@
-/** section: Language
- * class Object
- *
- *  Extensions to the built-in [[Object]] object.
- *
- *  Because it is dangerous and invasive to augment `Object.prototype` (i.e.,
- *  add instance methods to objects), all these methods are static methods that
- *  take an [[Object]] as their first parameter.
- *
- *  [[Object]] is used by Prototype as a namespace; that is, it just keeps a few 
- *  new methods together, which are intended for namespaced access (i.e. starting
- *  with "`Object.`").
- *  
- *  For the regular developer (who simply uses Prototype without tweaking it), the
- *  most commonly used methods are probably [[Object.inspect]] and, to a lesser degree, 
- *  [[Object.clone]].
- *  
- *  Advanced users, who wish to create their own objects like Prototype does, or
- *  explore objects as if they were hashes, will turn to [[Object.extend]], 
- *  [[Object.keys]], and [[Object.values]].
- **/
-
 Object.isFunction = function(o) {
 	return typeof o === 'function' 
 		|| Object.prototype.toString.call(o) === '[object Function]';
@@ -119,6 +97,10 @@ if(FastJS.features.hasNativeJSON)
 {
 	Object.toJSON = function(o) {
 		return JSON.stringify(o);
+	};
+	
+	Object.fromJSON = function(str) {
+		return JSON.parse(str);
 	};
 }
 else
@@ -228,5 +210,9 @@ else
 			return jsh(val, []).join('');
 		};
 	})();
+	
+	Object.fromJSON = function(str) {
+		return JSON.parse(str);
+	};
 }
 
