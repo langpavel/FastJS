@@ -223,6 +223,7 @@
 			nState	= oRequest.readyState;
 		}
 	};
+
 	function fXMLHttpRequest_send(oRequest) {
 		oRequest._r.send(oRequest._data);
 
@@ -243,6 +244,7 @@
 			}
 		}
 	};
+
 	XHR.prototype.send	= function(vData) {
 		// Add method sniffer
 		if (XHR.onsend)
