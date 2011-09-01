@@ -14,7 +14,7 @@ clean:
 
 deploy/FastJS.js: devel_includes.js $(JSFILES)
 	mkdir -p deploy
-	cat $^ > $@
+	cat $(JSFILES) > $@
 
 deploy/FastJS.min.js: deploy/FastJS.js
-	yui-compressor --type js deploy/FastJS.js > $@
+	yui-compressor --type js --line-break 180 deploy/FastJS.js -o $@

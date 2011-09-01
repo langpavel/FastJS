@@ -23,7 +23,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-(function (context) {
+(function (FastJS) {
 
 	// Constructor
 	var XHR = function() {
@@ -221,7 +221,7 @@
 				fReadyStateChange(oRequest);
 
 			nState	= oRequest.readyState;
-		}
+		};
 	};
 
 	function fXMLHttpRequest_send(oRequest) {
@@ -243,7 +243,7 @@
 					return;
 			}
 		}
-	};
+	}
 
 	XHR.prototype.send	= function(vData) {
 		// Add method sniffer
@@ -324,17 +324,17 @@
 	};
 
 	XHR.prototype.dispatchEvent	= function(oEvent) {
-		var oEventPseudo	= {
-			'type':			oEvent.type,
-			'target':		this,
-			'currentTarget':this,
-			'eventPhase':	2,
-			'bubbles':		oEvent.bubbles,
-			'cancelable':	oEvent.cancelable,
-			'timeStamp':	oEvent.timeStamp,
-			'stopPropagation':	function() {},	// There is no flow
-			'preventDefault':	function() {},	// There is no default action
-			'initEvent':		function() {}	// Original event object should be initialized
+		var oEventPseudo = {
+			'type': oEvent.type,
+			'target': this,
+			'currentTarget': this,
+			'eventPhase': 2,
+			'bubbles': oEvent.bubbles,
+			'cancelable': oEvent.cancelable,
+			'timeStamp': oEvent.timeStamp,
+			'stopPropagation': FastJS.E, // There is no flow
+			'preventDefault': FastJS.E, // There is no default action
+			'initEvent': FastJS.E // Original event object should be initialized
 		};
 
 		// Execute onreadystatechange
@@ -358,19 +358,19 @@
 	*/
 
 	// Helper function
-	function fReadyStateChange(oRequest) {
+	function fReadyStateChange(o) {
 		// Sniffing code
 		if (XHR.onreadystatechange)
-			XHR.onreadystatechange.apply(oRequest);
+			XHR.onreadystatechange.apply(o);
 
 		// Fake event
-		oRequest.dispatchEvent({
+		o.dispatchEvent({
 			'type':			"readystatechange",
 			'bubbles':		false,
 			'cancelable':	false,
 			'timeStamp':	new Date + 0
 		});
-	};
+	}
 
 	function fGetDocument(oRequest) {
 		var oDocument	= oRequest.responseXML,
@@ -387,19 +387,19 @@
 			if ((FastJS.features.browser.isIE && oDocument.parseError != 0) || !oDocument.documentElement || (oDocument.documentElement && oDocument.documentElement.tagName == "parsererror"))
 				return null;
 		return oDocument;
-	};
+	}
 
-	function fSynchronizeValues(oRequest) {
-		try {	oRequest.responseText	= oRequest._r.responseText;	} catch (e) {}
-		try {	oRequest.responseXML	= fGetDocument(oRequest._r);	} catch (e) {}
-		try {	oRequest.status			= oRequest._r.status;			} catch (e) {}
-		try {	oRequest.statusText		= oRequest._r.statusText;		} catch (e) {}
-	};
+	function fSynchronizeValues(o) {
+		try { o.responseText = o._r.responseText; } catch (e) { o.responseText = null; }
+		try { o.responseXML = fGetDocument(o._r); } catch (e) { o.responseXML = null; }
+		try { o.status = o._r.status; } catch (e) { o.status = null; }
+		try { o.statusText = o._r.statusText; } catch (e) { o.statusText = null; }
+	}
 
 	function fCleanTransport(oRequest) {
 		// BUGFIX: IE - memory leak (on-page leak)
 		oRequest._r.onreadystatechange	= new window.Function;
-	};
+	}
 
 	// Queue manager
 	var oQueuePending	= {"CRITICAL":[],"HIGH":[],"NORMAL":[],"LOW":[],"LOWEST":[]},
@@ -408,7 +408,7 @@
 		oQueuePending[oRequest.priority in oQueuePending ? oRequest.priority : "NORMAL"].push(oRequest);
 		//
 		setTimeout(fQueue_process);
-	};
+	}
 
 	function fQueue_remove(oRequest) {
 		for (var nIndex = 0, bFound	= false; nIndex < aQueueRunning.length; nIndex++)
@@ -421,7 +421,7 @@
 			aQueueRunning.length--;
 		//
 		setTimeout(fQueue_process);
-	};
+	}
 
 	function fQueue_process() {
 		if (aQueueRunning.length < 6) {
@@ -437,7 +437,7 @@
 				}
 			}
 		}
-	};
+	}
 
-	context.XHR	= XHR;
-})(FastJS);
+	FastJS.XHR = XHR;
+})(getFastJS());
