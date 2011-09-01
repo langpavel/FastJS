@@ -1,120 +1,440 @@
-/**
- * Wrapper for XMLHttpRequest
+/*
+ * XMLHttpRequest.js Copyright (C) 2010 Sergey Ilinsky (http://www.ilinsky.com)
  * 
- * events:
- * 		onreadystatechange
+ * Modified by Pavel Lang 2011
+ * 
+ * Original file from subversion repository at 
+ * http://xmlhttprequest.googlecode.com/svn/
+ * trunk/source/XMLHttpRequest.js 
+ * @ revision 45
+ * 
+ * This work is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation; either version 2.1 of the License, or
+ * (at your option) any later version.
+ * 
+ * This work is distributed in the hope that it will be useful,
+ * but without any warranty; without even the implied warranty of
+ * merchantability or fitness for a particular purpose. See the
+ * GNU Lesser General Public License for more details.
+
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this library; if not, write to the Free Software Foundation, Inc.,
+ * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
-FastJS.XHR = function() {
-	this._r = FastJS.XHR.createRequest();
-	
-	this.readyState = 0;
-	
-	this.response = 0;
-	
-	var slf = this;
-	this._r.onreadystatechange = function() {
-		slf.readyState = this.readyState;
-		if(typeof slf.onreadystatechange === 'function')
-			slf.onreadystatechange.call(slf);
+
+(function (context) {
+
+	// Constructor
+	var XHR = function() {
+		this._r	= XHR.createXMLHttpRequest();
+		this._listeners	= [];
+		this._headers = {};
 	};
-};
 
-/*
- * Static method.
- * Returns browser XMLHttpRequest instance
- */
-FastJS.XHR.createRequest = (function()
-{
-	if(typeof XMLHttpRequest !== 'undefined')
+	// Constants
+	XHR.UNSENT = 0;
+	XHR.OPENED = 1;
+	XHR.HEADERS_RECEIVED = 2;
+	XHR.LOADING = 3;
+	XHR.DONE = 4;
+
+	// Static functions
+	XHR.createXMLHttpRequest = (function() {
 		// for browsers with native support
-		return function() { return new XMLHttpRequest(); };
-	if(typeof ActiveXObject !== 'undefined')
-	{
-		// for IE
-		return function() {	return new ActiveXObject("Microsoft.XMLHTTP"); };
-	}
-	return null;
-})();
+		if(typeof XMLHttpRequest !== 'undefined' && !FastJS.features.browser.isIE7) {
+			return function() { return new XMLHttpRequest(); };
+		}
 
-FastJS.XHR.UNSENT = 0;
-FastJS.XHR.OPENED = 1;
-FastJS.XHR.HEADERS_RECEIVED = 2;
-FastJS.XHR.LOADING = 3;
-FastJS.XHR.DONE = 4;
+		// stuff for IE
+		if(typeof ActiveXObject !== 'undefined') {
+			return function() {	
+				try { return new ActiveXObject("MSXML2.XMLHTTP.6.0"); } catch (ex) { /* try next*/ }
+				try { return new ActiveXObject("MSXML2.XMLHTTP.3.0"); } catch (ex) { /* try next*/ }
+				try { return new ActiveXObject("Microsoft.XMLHTTP"); } catch (ex) { /* try next*/ }
+			};
+		}
+		return FastJS.E;
+	})();
 
-FastJS.XHR.prototype.open = function(method, url, async, user, password) {
-	this._r.open(method, url, async, user, password);
-};
+	// Public Properties
+	XHR.prototype.readyState = XHR.UNSENT;
+	XHR.prototype.responseText = '';
+	XHR.prototype.responseXML = null;
+	XHR.prototype.status = 0;
+	XHR.prototype.statusText = '';
 
-FastJS.XHR.prototype.setRequestHeader = function(header, value) {
-	this._r.setRequestHeader(header, value);
-};
+	// Priority proposal
+	XHR.prototype.priority = "NORMAL";
 
-FastJS.XHR.prototype.send = function(data) {
-	this._r.send(data);
-};
+	// Instance-level Events Handlers
+	XHR.prototype.onreadystatechange = null;
 
-FastJS.XHR.prototype.abort = function() {
-	this._r.abort();
-};
+	// Class-level Events Handlers
+	XHR.onreadystatechange = null;
+	XHR.onopen = null;
+	XHR.onsend = null;
+	XHR.onabort = null;
 
+	// Public Methods
+	XHR.prototype.open = function(sMethod, sUrl, bAsync, sUser, sPassword) {
+		// Delete headers, required when object is reused
+		this._headers = { };
 
+		// When bAsync parameter value is omitted, use true as default
+		if (arguments.length < 3)
+			bAsync = true;
+
+		// Save async parameter for fixing Gecko bug with missing readystatechange in synchronous requests
+		this._async = bAsync;
+
+		// Set the onreadystatechange handler
+		var oRequest = this,
+			nState = this.readyState,
+			fOnUnload;
+
+		// BUGFIX: IE - memory leak on page unload (inter-page leak)
+		if (FastJS.features.browser.isIE && bAsync) {
+			fOnUnload = function() {
+				if (nState != XHR.DONE) {
+					fCleanTransport(oRequest);
+					// Safe to abort here since onreadystatechange handler removed
+					oRequest.abort();
+				}
+			};
+			window.attachEvent("onunload", fOnUnload);
+		}
+
+		// Add method sniffer
+		if (XHR.onopen)
+			XHR.onopen.apply(this, arguments);
+
+		if (arguments.length === 5)
+			this._r.open(sMethod, sUrl, bAsync, sUser, sPassword);
+		else if (arguments.length === 4)
+			this._r.open(sMethod, sUrl, bAsync, sUser);
+		else
+			this._r.open(sMethod, sUrl, bAsync);
+
+		this.readyState	= XHR.OPENED;
+		fReadyStateChange(this);
+
+		this._r.onreadystatechange = function() {
+			if (FastJS.features.browser.isGecko && !bAsync)
+				return;
+
+			// Synchronize state
+			oRequest.readyState		= oRequest._object.readyState;
+
+			//
+			fSynchronizeValues(oRequest);
+
+			// BUGFIX: Firefox fires unnecessary DONE when aborting
+			if (oRequest._aborted) {
+				// Reset readyState to UNSENT
+				oRequest.readyState	= XHR.UNSENT;
+
+				// Return now
+				return;
+			}
+
+			if (oRequest.readyState == XHR.DONE) {
+				// Free up queue
+				delete oRequest._data;
+				if (bAsync)
+					fQueue_remove(oRequest);
+				//
+				fCleanTransport(oRequest);
+// Uncomment this block if you need a fix for IE cache
 /*
+				// BUGFIX: IE - cache issue
+				if (!oRequest._object.getResponseHeader("Date")) {
+					// Save object to cache
+					oRequest._cached	= oRequest._object;
 
-This is XHMHttpRequest Level 2 interface from Editor's Draft 23 August 2011
-See http://dev.w3.org/2006/webapi/XMLHttpRequest-2/#interface-xmlhttprequest:
+					// Instantiate a new transport object
+					XHR.call(oRequest);
 
-interface XMLHttpRequestEventTarget : EventTarget {
-  // event handlers
-           attribute Function onloadstart;
-           attribute Function onprogress;
-           attribute Function onabort;
-           attribute Function onerror;
-           attribute Function onload;
-           attribute Function ontimeout;
-           attribute Function onloadend;
-};
+					// Re-send request
+					if (sUser) {
+					 	if (sPassword)
+							oRequest._object.open(sMethod, sUrl, bAsync, sUser, sPassword);
+						else
+							oRequest._object.open(sMethod, sUrl, bAsync, sUser);
+					}
+					else
+						oRequest._object.open(sMethod, sUrl, bAsync);
+					oRequest._object.setRequestHeader("If-Modified-Since", oRequest._cached.getResponseHeader("Last-Modified") || new window.Date(0));
+					// Copy headers set
+					if (oRequest._headers)
+						for (var sHeader in oRequest._headers)
+							if (typeof oRequest._headers[sHeader] == "string")	// Some frameworks prototype objects with functions
+								oRequest._object.setRequestHeader(sHeader, oRequest._headers[sHeader]);
 
-interface XMLHttpRequestUpload : XMLHttpRequestEventTarget {
+					oRequest._object.onreadystatechange	= function() {
+						// Synchronize state
+						oRequest.readyState		= oRequest._object.readyState;
 
-};
+						if (oRequest._aborted) {
+							//
+							oRequest.readyState	= XHR.UNSENT;
 
-[Constructor]
-interface XMLHttpRequest : XMLHttpRequestEventTarget {
-  // event handler
-           attribute Function onreadystatechange;
+							// Return
+							return;
+						}
 
-  // states
-  const unsigned short UNSENT = 0;
-  const unsigned short OPENED = 1;
-  const unsigned short HEADERS_RECEIVED = 2;
-  const unsigned short LOADING = 3;
-  const unsigned short DONE = 4;
-  readonly attribute unsigned short readyState;
+						if (oRequest.readyState == XHR.DONE) {
+							// Clean Object
+							fCleanTransport(oRequest);
 
-  // request
-  void open(DOMString method, DOMString url, optional boolean async, optional DOMString? user, optional DOMString? password);
-  void setRequestHeader(DOMString header, DOMString value);
-           attribute unsigned long timeout;
-           attribute boolean withCredentials;
-  readonly attribute XMLHttpRequestUpload upload;
-  void send();
-  void send(ArrayBuffer data);
-  void send(Blob data);
-  void send(Document data);
-  void send([AllowAny] DOMString? data);
-  void send(FormData data);
-  void abort();
+							// get cached request
+							if (oRequest.status == 304)
+								oRequest._object	= oRequest._cached;
 
-  // response
-  readonly attribute unsigned short status;
-  readonly attribute DOMString statusText;
-  DOMString getResponseHeader(DOMString header);
-  DOMString getAllResponseHeaders();
-  void overrideMimeType(DOMString mime);
-           attribute DOMString responseType;
-  readonly attribute any response;
-  readonly attribute DOMString responseText;
-  readonly attribute Document responseXML;
-};
- */
+							//
+							delete oRequest._cached;
+
+							//
+							fSynchronizeValues(oRequest);
+
+							//
+							fReadyStateChange(oRequest);
+
+							// BUGFIX: IE - memory leak in interrupted
+							if (FastJS.features.browser.isIE && bAsync)
+								window.detachEvent("onunload", fOnUnload);
+						}
+					};
+					oRequest._object.send(null);
+
+					// Return now - wait until re-sent request is finished
+					return;
+				};
+*/
+				// BUGFIX: IE - memory leak in interrupted
+				if (FastJS.features.browser.isIE && bAsync)
+					window.detachEvent("onunload", fOnUnload);
+			}
+
+			// BUGFIX: Some browsers (Internet Explorer, Gecko) fire OPEN readystate twice
+			if (nState != oRequest.readyState)
+				fReadyStateChange(oRequest);
+
+			nState	= oRequest.readyState;
+		}
+	};
+	function fXMLHttpRequest_send(oRequest) {
+		oRequest._object.send(oRequest._data);
+
+		// BUGFIX: Gecko - missing readystatechange calls in synchronous requests
+		if (FastJS.features.browser.isGecko && !oRequest._async) {
+			oRequest.readyState	= XHR.OPENED;
+
+			// Synchronize state
+			fSynchronizeValues(oRequest);
+
+			// Simulate missing states
+			while (oRequest.readyState < XHR.DONE) {
+				oRequest.readyState++;
+				fReadyStateChange(oRequest);
+				// Check if we are aborted
+				if (oRequest._aborted)
+					return;
+			}
+		}
+	};
+	XHR.prototype.send	= function(vData) {
+		// Add method sniffer
+		if (XHR.onsend)
+			XHR.onsend.apply(this, arguments);
+
+		if (!arguments.length)
+			vData	= null;
+
+		// BUGFIX: Safari - fails sending documents created/modified dynamically, so an explicit serialization required
+		// BUGFIX: IE - rewrites any custom mime-type to "text/xml" in case an XMLNode is sent
+		// BUGFIX: Gecko - fails sending Element (this is up to the implementation either to standard)
+		if (vData && vData.nodeType) {
+			vData	= window.XMLSerializer ? new window.XMLSerializer().serializeToString(vData) : vData.xml;
+			if (!oRequest._headers["Content-Type"])
+				oRequest._object.setRequestHeader("Content-Type", "application/xml");
+		}
+
+		this._data	= vData;
+
+		// Add to queue
+		if (this._async)
+			fQueue_add(this);
+		else
+			fXMLHttpRequest_send(this);
+	};
+
+	XHR.prototype.abort	= function() {
+		// Add method sniffer
+		if (XHR.onabort)
+			XHR.onabort.apply(this, arguments);
+
+		// BUGFIX: Gecko - unnecessary DONE when aborting
+		if (this.readyState > XHR.UNSENT)
+			this._aborted	= true;
+
+		this._r.abort();
+
+		// BUGFIX: IE - memory leak
+		fCleanTransport(this);
+
+		this.readyState	= XHR.UNSENT;
+
+		delete this._data;
+		if (this._async)
+			fQueue_remove(this);
+	};
+
+	XHR.prototype.getAllResponseHeaders	= function() {
+		return this._r.getAllResponseHeaders();
+	};
+
+	XHR.prototype.getResponseHeader	= function(sName) {
+		return this._r.getResponseHeader(sName);
+	};
+
+	XHR.prototype.setRequestHeader	= function(sName, sValue) {
+		this._headers[sName] = sValue;
+		return this._r.setRequestHeader(sName, sValue);
+	};
+
+	// EventTarget interface implementation
+	XHR.prototype.addEventListener	= function(sName, fHandler, bUseCapture) {
+		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++)
+			if (oListener[0] == sName && oListener[1] == fHandler && oListener[2] == bUseCapture)
+				return;
+		// Add listener
+		this._listeners.push([sName, fHandler, bUseCapture]);
+	};
+
+	XHR.prototype.removeEventListener	= function(sName, fHandler, bUseCapture) {
+		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++)
+			if (oListener[0] == sName && oListener[1] == fHandler && oListener[2] == bUseCapture)
+				break;
+		// Remove listener
+		if (oListener)
+			this._listeners.splice(nIndex, 1);
+	};
+
+	XHR.prototype.dispatchEvent	= function(oEvent) {
+		var oEventPseudo	= {
+			'type':			oEvent.type,
+			'target':		this,
+			'currentTarget':this,
+			'eventPhase':	2,
+			'bubbles':		oEvent.bubbles,
+			'cancelable':	oEvent.cancelable,
+			'timeStamp':	oEvent.timeStamp,
+			'stopPropagation':	function() {},	// There is no flow
+			'preventDefault':	function() {},	// There is no default action
+			'initEvent':		function() {}	// Original event object should be initialized
+		};
+
+		// Execute onreadystatechange
+		if (oEventPseudo.type == "readystatechange" && this.onreadystatechange)
+			(this.onreadystatechange.handleEvent || this.onreadystatechange).apply(this, [oEventPseudo]);
+
+		// Execute listeners
+		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++)
+			if (oListener[0] == oEventPseudo.type && !oListener[2])
+				(oListener[1].handleEvent || oListener[1]).apply(this, [oEventPseudo]);
+	};
+
+	//
+	XHR.prototype.toString	= function() {
+		return '[' + "object" + ' ' + "XMLHttpRequest" + ']';
+	};
+
+	XHR.toString	= function() {
+		return '[' + "XMLHttpRequest" + ']';
+	};
+
+	// Helper function
+	function fReadyStateChange(oRequest) {
+		// Sniffing code
+		if (XHR.onreadystatechange)
+			XHR.onreadystatechange.apply(oRequest);
+
+		// Fake event
+		oRequest.dispatchEvent({
+			'type':			"readystatechange",
+			'bubbles':		false,
+			'cancelable':	false,
+			'timeStamp':	new Date + 0
+		});
+	};
+
+	function fGetDocument(oRequest) {
+		var oDocument	= oRequest.responseXML,
+			sResponse	= oRequest.responseText;
+		// Try parsing responseText
+		if (FastJS.features.browser.isIE && sResponse && oDocument && !oDocument.documentElement && oRequest.getResponseHeader("Content-Type").match(/[^\/]+\/[^\+]+\+xml/)) {
+			oDocument	= new window.ActiveXObject("Microsoft.XMLDOM");
+			oDocument.async				= false;
+			oDocument.validateOnParse	= false;
+			oDocument.loadXML(sResponse);
+		}
+		// Check if there is no error in document
+		if (oDocument)
+			if ((FastJS.features.browser.isIE && oDocument.parseError != 0) || !oDocument.documentElement || (oDocument.documentElement && oDocument.documentElement.tagName == "parsererror"))
+				return null;
+		return oDocument;
+	};
+
+	function fSynchronizeValues(oRequest) {
+		try {	oRequest.responseText	= oRequest._object.responseText;	} catch (e) {}
+		try {	oRequest.responseXML	= fGetDocument(oRequest._object);	} catch (e) {}
+		try {	oRequest.status			= oRequest._object.status;			} catch (e) {}
+		try {	oRequest.statusText		= oRequest._object.statusText;		} catch (e) {}
+	};
+
+	function fCleanTransport(oRequest) {
+		// BUGFIX: IE - memory leak (on-page leak)
+		oRequest._object.onreadystatechange	= new window.Function;
+	};
+
+	// Queue manager
+	var oQueuePending	= {"CRITICAL":[],"HIGH":[],"NORMAL":[],"LOW":[],"LOWEST":[]},
+		aQueueRunning	= [];
+	function fQueue_add(oRequest) {
+		oQueuePending[oRequest.priority in oQueuePending ? oRequest.priority : "NORMAL"].push(oRequest);
+		//
+		setTimeout(fQueue_process);
+	};
+
+	function fQueue_remove(oRequest) {
+		for (var nIndex = 0, bFound	= false; nIndex < aQueueRunning.length; nIndex++)
+			if (bFound)
+				aQueueRunning[nIndex - 1]	= aQueueRunning[nIndex];
+			else
+			if (aQueueRunning[nIndex] == oRequest)
+				bFound	= true;
+		if (bFound)
+			aQueueRunning.length--;
+		//
+		setTimeout(fQueue_process);
+	};
+
+	function fQueue_process() {
+		if (aQueueRunning.length < 6) {
+			for (var sPriority in oQueuePending) {
+				if (oQueuePending[sPriority].length) {
+					var oRequest	= oQueuePending[sPriority][0];
+					oQueuePending[sPriority]	= oQueuePending[sPriority].slice(1);
+					//
+					aQueueRunning.push(oRequest);
+					// Send request
+					fXMLHttpRequest_send(oRequest);
+					break;
+				}
+			}
+		}
+	};
+
+	context.XHR	= XHR;
+})(FastJS);

@@ -1,4 +1,6 @@
 if(typeof Date.prototype.toISOString === 'undefined') {
+	
+	FastJS.features.artificials['Date.prototype.toISOString'] = true;
 	Date.prototype.toISOString = function() {
 		return this.getUTCFullYear() + '-'
 			+ (this.getUTCMonth() + 1).toPaddedString(2) + '-'

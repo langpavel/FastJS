@@ -1,5 +1,6 @@
 if(typeof Function.prototype.bind === 'undefined')
 {
+	FastJS.features.artificials['Function.prototype.bind'] = true; 
 	// refactored code from PrototypeJS
 	// TODO: this need heavy testing; 
 	Function.prototype.bind = function bind(c)
@@ -25,5 +26,15 @@ if(typeof Function.prototype.bind === 'undefined')
 			var a = merge(ag, arguments);
 			return m.apply(c, a);
 		};
+	};
+}
+
+if (typeof Function.prototype.apply === 'undefined') {
+	FastJS.features.artificials['Function.prototype.apply'] = true;
+	Function.prototype.apply = function(o, a) {
+		if(!a) a = [];
+		o.__applied_func = this;
+		o.__applied_func(a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7], a[8], a[9]);
+		delete o.__applied_func;
 	};
 }
