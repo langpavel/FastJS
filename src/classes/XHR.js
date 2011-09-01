@@ -124,7 +124,7 @@
 				return;
 
 			// Synchronize state
-			oRequest.readyState		= oRequest._object.readyState;
+			oRequest.readyState		= oRequest._r.readyState;
 
 			//
 			fSynchronizeValues(oRequest);
@@ -148,9 +148,9 @@
 // Uncomment this block if you need a fix for IE cache
 /*
 				// BUGFIX: IE - cache issue
-				if (!oRequest._object.getResponseHeader("Date")) {
+				if (!oRequest._r.getResponseHeader("Date")) {
 					// Save object to cache
-					oRequest._cached	= oRequest._object;
+					oRequest._cached	= oRequest._r;
 
 					// Instantiate a new transport object
 					XHR.call(oRequest);
@@ -158,22 +158,22 @@
 					// Re-send request
 					if (sUser) {
 					 	if (sPassword)
-							oRequest._object.open(sMethod, sUrl, bAsync, sUser, sPassword);
+							oRequest._r.open(sMethod, sUrl, bAsync, sUser, sPassword);
 						else
-							oRequest._object.open(sMethod, sUrl, bAsync, sUser);
+							oRequest._r.open(sMethod, sUrl, bAsync, sUser);
 					}
 					else
-						oRequest._object.open(sMethod, sUrl, bAsync);
-					oRequest._object.setRequestHeader("If-Modified-Since", oRequest._cached.getResponseHeader("Last-Modified") || new window.Date(0));
+						oRequest._r.open(sMethod, sUrl, bAsync);
+					oRequest._r.setRequestHeader("If-Modified-Since", oRequest._cached.getResponseHeader("Last-Modified") || new window.Date(0));
 					// Copy headers set
 					if (oRequest._headers)
 						for (var sHeader in oRequest._headers)
 							if (typeof oRequest._headers[sHeader] == "string")	// Some frameworks prototype objects with functions
-								oRequest._object.setRequestHeader(sHeader, oRequest._headers[sHeader]);
+								oRequest._r.setRequestHeader(sHeader, oRequest._headers[sHeader]);
 
-					oRequest._object.onreadystatechange	= function() {
+					oRequest._r.onreadystatechange	= function() {
 						// Synchronize state
-						oRequest.readyState		= oRequest._object.readyState;
+						oRequest.readyState		= oRequest._r.readyState;
 
 						if (oRequest._aborted) {
 							//
@@ -189,7 +189,7 @@
 
 							// get cached request
 							if (oRequest.status == 304)
-								oRequest._object	= oRequest._cached;
+								oRequest._r	= oRequest._cached;
 
 							//
 							delete oRequest._cached;
@@ -205,7 +205,7 @@
 								window.detachEvent("onunload", fOnUnload);
 						}
 					};
-					oRequest._object.send(null);
+					oRequest._r.send(null);
 
 					// Return now - wait until re-sent request is finished
 					return;
@@ -224,7 +224,7 @@
 		}
 	};
 	function fXMLHttpRequest_send(oRequest) {
-		oRequest._object.send(oRequest._data);
+		oRequest._r.send(oRequest._data);
 
 		// BUGFIX: Gecko - missing readystatechange calls in synchronous requests
 		if (FastJS.features.browser.isGecko && !oRequest._async) {
@@ -257,7 +257,7 @@
 		if (vData && vData.nodeType) {
 			vData	= window.XMLSerializer ? new window.XMLSerializer().serializeToString(vData) : vData.xml;
 			if (!oRequest._headers["Content-Type"])
-				oRequest._object.setRequestHeader("Content-Type", "application/xml");
+				oRequest._r.setRequestHeader("Content-Type", "application/xml");
 		}
 
 		this._data	= vData;
@@ -304,7 +304,7 @@
 	};
 
 	// EventTarget interface implementation
-	XHR.prototype.addEventListener	= function(sName, fHandler, bUseCapture) {
+	XHR.prototype.addEventListener = function(sName, fHandler, bUseCapture) {
 		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++)
 			if (oListener[0] == sName && oListener[1] == fHandler && oListener[2] == bUseCapture)
 				return;
@@ -345,14 +345,15 @@
 				(oListener[1].handleEvent || oListener[1]).apply(this, [oEventPseudo]);
 	};
 
-	//
+	/*
 	XHR.prototype.toString	= function() {
 		return '[' + "object" + ' ' + "XMLHttpRequest" + ']';
 	};
 
-	XHR.toString	= function() {
+	XHR.toString = function() {
 		return '[' + "XMLHttpRequest" + ']';
 	};
+	*/
 
 	// Helper function
 	function fReadyStateChange(oRequest) {
@@ -387,15 +388,15 @@
 	};
 
 	function fSynchronizeValues(oRequest) {
-		try {	oRequest.responseText	= oRequest._object.responseText;	} catch (e) {}
-		try {	oRequest.responseXML	= fGetDocument(oRequest._object);	} catch (e) {}
-		try {	oRequest.status			= oRequest._object.status;			} catch (e) {}
-		try {	oRequest.statusText		= oRequest._object.statusText;		} catch (e) {}
+		try {	oRequest.responseText	= oRequest._r.responseText;	} catch (e) {}
+		try {	oRequest.responseXML	= fGetDocument(oRequest._r);	} catch (e) {}
+		try {	oRequest.status			= oRequest._r.status;			} catch (e) {}
+		try {	oRequest.statusText		= oRequest._r.statusText;		} catch (e) {}
 	};
 
 	function fCleanTransport(oRequest) {
 		// BUGFIX: IE - memory leak (on-page leak)
-		oRequest._object.onreadystatechange	= new window.Function;
+		oRequest._r.onreadystatechange	= new window.Function;
 	};
 
 	// Queue manager
