@@ -41,3 +41,5 @@ if(typeof getFastJS === 'undefined') {
 		};
 	})();
 }
+
+getFastJS()['GLOBAL'] = this;

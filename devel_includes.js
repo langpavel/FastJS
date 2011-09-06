@@ -18,6 +18,9 @@
 	__import('src/lang/array.js');
 	__import('src/lang/string.js');
 	__import('src/lang/date.js');
+	__import('src/classes/Encoding/Hex.js');
+	__import('src/classes/Encoding/B64.js');
+	__import('src/classes/Hash/SHA1.js');
 	__import('src/classes/XHR.js');
 	__import('src/classes/XML.js');
 	__import('src/classes/XMPP/NS.js');
