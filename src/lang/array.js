@@ -23,8 +23,9 @@
 	if(typeof Array.isArray === 'undefined')
 	{
 		af['Array.isArray'] = true;
-		Array.prototype.isArray = function() {
+		Array.isArray = function() {
 			return Object.prototype.toString.call(this) === '[object Array]';
 		};
 	}
+	
 })(getFastJS('features','artificials'));

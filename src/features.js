@@ -1,21 +1,12 @@
-(function(FastJS){
-	/**
-	 * FastJS features namespace
-	 */
-	FastJS.getNS('features');
-	
-	/**
-	 * artificial language features
-	 */
-	FastJS.getNS('features','artificials');
-	
-	FastJS.features.hasNativeJSON = (typeof JSON !== 'undefined'
+(function(FastJS, features, af){
+
+	features.hasNativeJSON = (typeof JSON !== 'undefined'
 		&& typeof JSON.stringify === 'function'
 		&& JSON.stringify(0) === '0'
 		&& typeof JSON.stringify(FastJS.K) === 'undefined');
 	
 	// most of these code is copied from http://www.quirksmode.org/js/detect.html
-	FastJS.features.browser = (function() {
+	features.browser = (function() {
 		var b = {
 			init: function () {
 				this.browser = this.searchString(this.dataBrowser);
@@ -144,4 +135,4 @@
 			}
 		};
 	})();
-})(getFastJS());
+})(getFastJS(), getFastJS('features'), getFastJS('features', 'artificials'));

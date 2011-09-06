@@ -23,7 +23,7 @@
  * 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  */
 
-(function (FastJS) {
+(function (FastJS, features) {
 
 	// Constructor
 	var XHR = function() {
@@ -42,7 +42,7 @@
 	// Static functions
 	XHR.createXMLHttpRequest = (function() {
 		// for browsers with native support
-		if(typeof XMLHttpRequest !== 'undefined' && !FastJS.features.browser.isIE7) {
+		if(typeof XMLHttpRequest !== 'undefined' && !features.browser.isIE7) {
 			return function() { return new XMLHttpRequest(); };
 		}
 
@@ -94,7 +94,7 @@
 			fOnUnload;
 
 		// BUGFIX: IE - memory leak on page unload (inter-page leak)
-		if (FastJS.features.browser.isIE && bAsync) {
+		if (features.browser.isIE && bAsync) {
 			fOnUnload = function() {
 				if (nState != XHR.DONE) {
 					fCleanTransport(oRequest);
@@ -120,7 +120,7 @@
 		fReadyStateChange(this);
 
 		this._r.onreadystatechange = function() {
-			if (FastJS.features.browser.isGecko && !bAsync)
+			if (features.browser.isGecko && !bAsync)
 				return;
 
 			// Synchronize state
@@ -201,7 +201,7 @@
 							fReadyStateChange(oRequest);
 
 							// BUGFIX: IE - memory leak in interrupted
-							if (FastJS.features.browser.isIE && bAsync)
+							if (features.browser.isIE && bAsync)
 								window.detachEvent("onunload", fOnUnload);
 						}
 					};
@@ -212,7 +212,7 @@
 				};
 */
 				// BUGFIX: IE - memory leak in interrupted
-				if (FastJS.features.browser.isIE && bAsync)
+				if (features.browser.isIE && bAsync)
 					window.detachEvent("onunload", fOnUnload);
 			}
 
@@ -228,7 +228,7 @@
 		oRequest._r.send(oRequest._data);
 
 		// BUGFIX: Gecko - missing readystatechange calls in synchronous requests
-		if (FastJS.features.browser.isGecko && !oRequest._async) {
+		if (features.browser.isGecko && !oRequest._async) {
 			oRequest.readyState	= XHR.OPENED;
 
 			// Synchronize state
@@ -376,7 +376,7 @@
 		var oDocument	= oRequest.responseXML,
 			sResponse	= oRequest.responseText;
 		// Try parsing responseText
-		if (FastJS.features.browser.isIE && sResponse && oDocument && !oDocument.documentElement && oRequest.getResponseHeader("Content-Type").match(/[^\/]+\/[^\+]+\+xml/)) {
+		if (features.browser.isIE && sResponse && oDocument && !oDocument.documentElement && oRequest.getResponseHeader("Content-Type").match(/[^\/]+\/[^\+]+\+xml/)) {
 			oDocument	= new window.ActiveXObject("Microsoft.XMLDOM");
 			oDocument.async				= false;
 			oDocument.validateOnParse	= false;
@@ -384,7 +384,7 @@
 		}
 		// Check if there is no error in document
 		if (oDocument)
-			if ((FastJS.features.browser.isIE && oDocument.parseError != 0) || !oDocument.documentElement || (oDocument.documentElement && oDocument.documentElement.tagName == "parsererror"))
+			if ((features.browser.isIE && oDocument.parseError != 0) || !oDocument.documentElement || (oDocument.documentElement && oDocument.documentElement.tagName == "parsererror"))
 				return null;
 		return oDocument;
 	}
@@ -440,4 +440,4 @@
 	}
 
 	FastJS.XHR = XHR;
-})(getFastJS());
+})(getFastJS(), getFastJS('features'));

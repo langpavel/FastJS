@@ -12,13 +12,14 @@
 	
 	__import('src/boot.js');
 	__import('src/features.js');
-	__import('src/lang/object.js'); 
+	__import('src/lang/global.js');
+	__import('src/lang/object.js');
 	__import('src/lang/function.js');
 	__import('src/lang/array.js');
-	__import('src/lang/date.js');
 	__import('src/lang/string.js');
-	__import('src/classes/Ev.js');
+	__import('src/lang/date.js');
 	__import('src/classes/XHR.js');
+	__import('src/classes/XML.js');
 	__import('src/classes/XMPP/NS.js');
 	__import('src/classes/XMPP/Connection.js');
 })();
