@@ -1,15 +1,10 @@
 (function(FJS, Hash) {
+
 	/**
-	 *
 	 *  Secure Hash Algorithm (SHA1)
-	 *  http://www.webtoolkit.info/
-	 *
+	 *  Orriginaly from http://www.webtoolkit.info/
 	 **/
 	Hash.SHA1 = function(msg) {
-		var rotate_left = function(n, s) {
-			var t4 = (n << s) | (n >>> (32 - s));
-			return t4;
-		};
 
 		/*
 		var lsb_hex = function(val) {
@@ -39,34 +34,6 @@
 				str += v.toString(16);
 			}
 			return str;
-		};
-
-		var Utf8Encode = function(string) {
-			string = string.replace(/\r\n/g, "\n");
-			var utftext = "";
-
-			for( var n = 0; n < string.length; n++)
-			{
-
-				var c = string.charCodeAt(n);
-
-				if(c < 128)
-				{
-					utftext += String.fromCharCode(c);
-				} else if((c > 127) && (c < 2048))
-				{
-					utftext += String.fromCharCode((c >> 6) | 192);
-					utftext += String.fromCharCode((c & 63) | 128);
-				} else
-				{
-					utftext += String.fromCharCode((c >> 12) | 224);
-					utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-					utftext += String.fromCharCode((c & 63) | 128);
-				}
-
-			}
-
-			return utftext;
 		};
 
 		var blockstart;
@@ -126,8 +93,7 @@
 			for(i = 0; i < 16; i++)
 				W[i] = word_array[blockstart + i];
 			for(i = 16; i <= 79; i++)
-				W[i] = rotate_left(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16],
-						1);
+				W[i] = Hash.crl(W[i - 3] ^ W[i - 8] ^ W[i - 14] ^ W[i - 16], 1);
 
 			A = H0;
 			B = H1;
@@ -137,41 +103,41 @@
 
 			for(i = 0; i <= 19; i++)
 			{
-				temp = (rotate_left(A, 5) + ((B & C) | (~B & D)) + E + W[i] + 0x5A827999) & 0x0ffffffff;
+				temp = (Hash.crl(A, 5) + ((B & C) | (~B & D)) + E + W[i] + 0x5A827999) & 0x0ffffffff;
 				E = D;
 				D = C;
-				C = rotate_left(B, 30);
+				C = Hash.crl(B, 30);
 				B = A;
 				A = temp;
 			}
 
 			for(i = 20; i <= 39; i++)
 			{
-				temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0x6ED9EBA1) & 0x0ffffffff;
+				temp = (Hash.crl(A, 5) + (B ^ C ^ D) + E + W[i] + 0x6ED9EBA1) & 0x0ffffffff;
 				E = D;
 				D = C;
-				C = rotate_left(B, 30);
+				C = Hash.crl(B, 30);
 				B = A;
 				A = temp;
 			}
 
 			for(i = 40; i <= 59; i++)
 			{
-				temp = (rotate_left(A, 5) + ((B & C) | (B & D) | (C & D)) + E
+				temp = (Hash.crl(A, 5) + ((B & C) | (B & D) | (C & D)) + E
 						+ W[i] + 0x8F1BBCDC) & 0x0ffffffff;
 				E = D;
 				D = C;
-				C = rotate_left(B, 30);
+				C = Hash.crl(B, 30);
 				B = A;
 				A = temp;
 			}
 
 			for(i = 60; i <= 79; i++)
 			{
-				temp = (rotate_left(A, 5) + (B ^ C ^ D) + E + W[i] + 0xCA62C1D6) & 0x0ffffffff;
+				temp = (Hash.crl(A, 5) + (B ^ C ^ D) + E + W[i] + 0xCA62C1D6) & 0x0ffffffff;
 				E = D;
 				D = C;
-				C = rotate_left(B, 30);
+				C = Hash.crl(B, 30);
 				B = A;
 				A = temp;
 			}

@@ -17,10 +17,8 @@
 				h2 = b >> 12 & 0x3f;
 				h3 = b >> 6 & 0x3f;
 				h4 = b & 0x3f;
-				a.push(b64c.charAt(h1));
-				a.push(b64c.charAt(h2));
-				a.push(b64c.charAt(h3));
-				a.push(b64c.charAt(h4));
+				a.push(b64c.charAt(h1), b64c.charAt(h2), 
+					b64c.charAt(h3), b64c.charAt(h4));
 			}
 			i=a.length;
 			switch(l % 3)

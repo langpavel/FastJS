@@ -27,7 +27,7 @@
 
 	// Constructor
 	var XHR = function() {
-		this._r	= XHR.createXMLHttpRequest();
+		this._r	= XHR.createNativeXHR();
 		this._listeners	= [];
 		this._headers = {};
 	};
@@ -40,7 +40,7 @@
 	XHR.DONE = 4;
 
 	// Static functions
-	XHR.createXMLHttpRequest = (function() {
+	XHR.createNativeXHR = (function() {
 		// for browsers with native support
 		if(typeof XMLHttpRequest !== 'undefined' && !features.browser.isIE7) {
 			return function() { return new XMLHttpRequest(); };
@@ -250,22 +250,24 @@
 		if (XHR.onsend)
 			XHR.onsend.apply(this, arguments);
 
-		if (!arguments.length)
+		if (arguments.length === 0)
 			vData	= null;
 
 		// BUGFIX: Safari - fails sending documents created/modified dynamically, so an explicit serialization required
 		// BUGFIX: IE - rewrites any custom mime-type to "text/xml" in case an XMLNode is sent
 		// BUGFIX: Gecko - fails sending Element (this is up to the implementation either to standard)
-		if (vData && vData.nodeType) {
-			vData	= window.XMLSerializer ? new window.XMLSerializer().serializeToString(vData) : vData.xml;
-			if (!oRequest._headers["Content-Type"])
+		if (typeof vData !== 'undefined' && typeof vData.nodeType  !== 'undefined') {
+			vData = (typeof XMLSerializer !== 'undefined') 
+				? (new window.XMLSerializer()).serializeToString(vData) 
+				: vData.xml;
+			if(typeof oRequest._headers["Content-Type"] === 'undefined')
 				oRequest._r.setRequestHeader("Content-Type", "application/xml");
 		}
 
 		this._data	= vData;
 
 		// Add to queue
-		if (this._async)
+		if(this._async)
 			fQueue_add(this);
 		else
 			fXMLHttpRequest_send(this);
@@ -305,6 +307,12 @@
 		return this._r.setRequestHeader(sName, sValue);
 	};
 
+	XHR.prototype.overrideMimeType = function(mimetype) {
+		if(typeof this._r.overrideMimeType !== 'undefined') {
+			this._r.overrideMimeType(mimetype);
+		}
+	};
+	
 	// EventTarget interface implementation
 	XHR.prototype.addEventListener = function(sName, fHandler, bUseCapture) {
 		for (var nIndex = 0, oListener; oListener = this._listeners[nIndex]; nIndex++)
