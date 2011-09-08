@@ -1,35 +1,22 @@
 "use strict";
 
+if(typeof FastJS === 'undefined')
+	FastJS = {};
+
 if(typeof getFastJS === 'undefined') {
 	var getFastJS = (function(){
-		var FastJS = {
-			/**
-			 * Empty function
-			 */
-			E: function() { /* void */ },
-
-			/**
-			 * True function
-			 */
-			T: function() { return true; },
-
-			/**
-			 * False function
-			 */
-			F: function() { return false; },
-
-			/**
-			 * Identity function - transparent function
-			 */
-			K: function(x) { return x; }
-		};
+		var FJS = FastJS;
+		FJS.E = function() { /* void */ };
+		FJS.T = function() { return true; };
+		FJS.F = function() { return false; };
+		FJS.K = function(x) { return x; };
 		
 		return function() {
 			if(arguments.length === 0)
-				return FastJS;
+				return FJS;
 			var nn, i;
 			var l=arguments.length;
-			var ns = FastJS;
+			var ns = FJS;
 			for(i=0; i<l; i++)
 			{
 				nn = arguments[i];

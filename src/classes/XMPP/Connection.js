@@ -4,28 +4,19 @@
 		this.state = 0;
 		this.sid = null;
 		this.xhr = null;
-		this.rid = Math.ceil(Math.random() * 2147483647);
+		this.props = new XMPP.ConnProps();
 	};
 
-	Con.prototype.bosh = '/http-bind';
-	Con.prototype.bosh_ver = '1.0';
-	Con.prototype.jid = null;
-	Con.prototype.domain = 'localhost';
-	Con.prototype.lang = 'en';
-	Con.prototype.hold = 1;
-	Con.prototype.wait = 60;
-	Con.prototype.route = 'xmpp:localhost:5222';
-	
 	Con.prototype.toString = function() {
 		var sb = [];
-		sb.push('[XMPP BOSH Connection to [', this.bosh, '], state ', 
+		sb.push('[XMPP BOSH Connection to [', this.props.bosh, '], state ', 
 			this.state, ']');
 		return sb.join('');
 	};
 
-	Con.prototype.createRequest = function() {
+	Con.prototype.createXHR = function() {
 		this.xhr = FJS.XHR.createNativeXHR();
-		this.xhr.open('POST', this.bosh, true);
+		this.xhr.open('POST', this.props.bosh, true);
 		this.xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
 		this.xhr.onreadystatechange = this._xhrRSchange.bind(this, this.xhr);
 		return this.xhr;
@@ -35,30 +26,51 @@
 		return XML.createNativeDoc('http://jabber.org/protocol/httpbind', 'body', null);
 	};
 	
-	Con.prototype.createBodyWrapper = function() {
-		var xdoc = XML.createNativeDoc('http://jabber.org/protocol/httpbind', 'body', null);
+	Con.prototype.createRequestBody = function(attrs) {
+		var xdoc = XML.createNativeDoc(XMPP.NS.HTTPBIND, 'body', null);
 		var body = xdoc.documentElement;
-		body.setAttribute('content', 'text/xml; charset=utf-8');
+		XML.setAttrs(body, {
+			'content': 'text/xml; charset=utf-8',
+			'rid': this.props.getRid(),
+			'to': this.props.domain,
+			'secure': 'true',
+			'wait': this.props.wait,
+			'hold': this.props.hold,
+			'xml:lang': this.props.lang,
+			'xmpp:version': this.props.bosh_ver,
+			'xmlns': XMPP.NS.HTTPBIND,
+			'xmlns:xmpp': XMPP.NS.XBOSH
+		});
 		if(this.jid !== null) 
 			body.setAttribute('from', this.jid);
-		body.setAttribute('hold', this.hold);
-		body.setAttribute('rid', this.rid);
-		body.setAttribute('to', this.domain);
-		body.setAttribute('secure', 'true');
-		body.setAttribute('wait', this.wait);
 		if(this.sid !== null)
 			body.setAttribute('sid', this.sid);
-		body.setAttribute('xml:lang', this.lang);
-		body.setAttribute('xmpp:version', this.bosh_ver);
-		body.setAttribute('xmlns', 'http://jabber.org/protocol/httpbind');
-		body.setAttribute('xmlns:xmpp', 'urn:xmpp:xbosh');
+		if(typeof attrs === 'object')
+			XML.setAttrs(body, attrs);
 		return xdoc;
 	};
 
 	Con.prototype._xhrRSchange = function(xhr) {
-		if(xhr.readyState == 4 && xhr.status == 200) 
-			alert('OK!');
-		console.debug('Con.prototype._xhrRSchange: ', this, xhr);
+		switch(xhr.readyState) {
+			//case 0: break; // UNSET
+			//case 1: break; // OPENED
+			//case 2: break; // HEADERS_RECEIVED
+			//case 3: // LOADING
+			case 4: // DONE
+				if(xhr.status == 200)
+					this.documentReceived(xhr.responseXML);
+				else
+					this.xhrerror(xhr);
+			break;
+		}
+	};
+	
+	Con.prototype.documentReceived = function(xdoc) {
+		console.debug("received ", xdoc);
+	};
+	
+	Con.prototype.xhrerror = function(xhr) {
+		console.debug("XHR error ", xhr);
 	};
 	
 	Con.prototype.connect = function()

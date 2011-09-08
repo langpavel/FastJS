@@ -2,7 +2,7 @@
 
 	XMPP.NS = {
 		HTTPBIND: "http://jabber.org/protocol/httpbind",
-		BOSH: "urn:xmpp:xbosh",
+		XBOSH: "urn:xmpp:xbosh",
 		CLIENT: "jabber:client",
 	//	SERVER: "jabber:server",
 		AUTH: "jabber:iq:auth",

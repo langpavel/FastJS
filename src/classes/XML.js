@@ -1,14 +1,13 @@
-(function(FJS, XML, af){
+(function(GLOBAL, FJS, XML, af){
 	af['FastJS.XML.createNativeDoc'] = true;
 	XML.createNativeDoc = (function() {
-		// can check of typeof document.implementation do errors?
-		if(typeof document.implementation !== 'undefined'
-			&& typeof document.implementation.createDocument !== 'undefined')
+		if(typeof GLOBAL.document.implementation !== 'undefined'
+			&& typeof GLOBAL.document.implementation.createDocument !== 'undefined')
 		{
 			af['FastJS.XML.createNativeDoc variant'] = 'document.implementation.createDocument';
 			return function(namespace, rootElement, doctype) {
 				if(doctype==null) doctype = null;
-				return document.implementation.createDocument(namespace, rootElement, doctype);
+				return GLOBAL.document.implementation.createDocument(namespace, rootElement, doctype);
 			};
 		}
 		
@@ -51,5 +50,14 @@
 
 		return FJS.E;
 	})();
+	
+	XML.setAttrs = function(el, attrs) {
+		var a, v;
+		for(var a in attrs) {
+			v = attrs[a];
+			if(v !== null)
+				el.setAttribute(a, v);
+		}
+	};
 
-})(getFastJS(), getFastJS('XML'), getFastJS('features', 'artificials'));
+})(getFastJS('GLOBAL'), getFastJS(), getFastJS('XML'), getFastJS('features', 'artificials'));

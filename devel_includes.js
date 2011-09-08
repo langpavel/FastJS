@@ -26,6 +26,9 @@
 	__import('src/classes/XHR.js');
 	__import('src/classes/XML.js');
 	__import('src/classes/XMPP/NS.js');
+	__import('src/classes/XMPP/ConnProps.js');
 	__import('src/classes/XMPP/Connection.js');
 	__import('src/classes/XMPP/Enums.js');
+
+	__import('src/end.js');
 })();
