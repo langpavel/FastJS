@@ -38,7 +38,7 @@
 		xhr.open('POST', this.props.bosh, true);
 		xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
 		xhr.send(xdoc);
-		console.debug("send ", xdoc);
+		FJS.debug("send ", xdoc);
 		return xhr;
 	};
 	
@@ -55,6 +55,7 @@
 			case 4: // DONE
 				if(xhr.status == 200) {
 					if(typeof okcallback === 'function') {
+						FJS.debug("received ", xhr.responseXML);
 						if(okcallback(xhr.responseXML.documentElement, xhr) === true)
 							return;
 						this.documentReceived(xhr.responseXML);
@@ -70,7 +71,7 @@
 	};
 	
 	Con.prototype.documentReceived = function(xdoc) {
-		console.debug("received ", xdoc);
+		FJS.debug("UNHANDLED RECEIVED ", xdoc);
 	};
 	
 	Con.prototype.login = function(pass, okcallback, failcallback) {
@@ -78,7 +79,7 @@
 	};
 	
 	Con.prototype.xhrerror = function(xhr) {
-		console.debug("XHR error ", xhr);
+		FJS.debug("XHR error ", xhr);
 	};
 	
 	Con.prototype.connect = function()

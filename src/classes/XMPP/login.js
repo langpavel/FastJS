@@ -86,7 +86,7 @@
 	};
 
 	Login.prototype._restart_done = function(body, xhr) {
-		console.debug('restart done', body);
+		FJS.debug('restart done', body);
 		return true;
 	};
 	

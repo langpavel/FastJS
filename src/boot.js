@@ -10,6 +10,8 @@ if(typeof getFastJS === 'undefined') {
 		FJS.T = function() { return true; };
 		FJS.F = function() { return false; };
 		FJS.K = function(x) { return x; };
+		if(typeof FJS.debug === 'undefined')
+		FJS.debug = FJS.E;
 		
 		return function() {
 			if(arguments.length === 0)
