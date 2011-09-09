@@ -14,14 +14,6 @@
 		return sb.join('');
 	};
 
-	Con.prototype.createXHR = function() {
-		this.xhr = FJS.XHR.createNativeXHR();
-		this.xhr.open('POST', this.props.bosh, true);
-		this.xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
-		this.xhr.onreadystatechange = this._xhrRSchange.bind(this, this.xhr);
-		return this.xhr;
-	};
-	
 	Con.prototype.createXmlDoc = function() {
 		return XML.createNativeDoc('http://jabber.org/protocol/httpbind', 'body', null);
 	};
@@ -30,43 +22,59 @@
 		var xdoc = XML.createNativeDoc(XMPP.NS.HTTPBIND, 'body', null);
 		var body = xdoc.documentElement;
 		XML.setAttrs(body, {
-			'content': 'text/xml; charset=utf-8',
 			'rid': this.props.getRid(),
-			'to': this.props.domain,
-			'secure': 'true',
-			'wait': this.props.wait,
-			'hold': this.props.hold,
-			'xml:lang': this.props.lang,
-			'xmpp:version': this.props.bosh_ver,
+			'sid': this.props.sid,
 			'xmlns': XMPP.NS.HTTPBIND,
-			'xmlns:xmpp': XMPP.NS.XBOSH
 		});
-		if(this.jid !== null) 
-			body.setAttribute('from', this.jid);
-		if(this.sid !== null)
-			body.setAttribute('sid', this.sid);
 		if(typeof attrs === 'object')
 			XML.setAttrs(body, attrs);
 		return xdoc;
 	};
 
-	Con.prototype._xhrRSchange = function(xhr) {
+	Con.prototype.sendXDoc = function(xdoc, okcallback, failcallback, stateCallback) {
+		var xhr = FJS.XHR.createNativeXHR();
+		xhr.onreadystatechange = this._xhrRSchange.bind(this, 
+				xhr, okcallback, failcallback, stateCallback);
+		xhr.open('POST', this.props.bosh, true);
+		xhr.setRequestHeader('Content-Type', 'text/xml; charset=utf-8');
+		xhr.send(xdoc);
+		console.debug("send ", xdoc);
+		return xhr;
+	};
+	
+	Con.prototype._xhrRSchange = function(xhr, okcallback, failcallback, stateCallback) {
+		if(typeof stateCallback === 'function')
+			if(stateCallback(xhr.readyState, xhr) === true)
+				return;
+		
 		switch(xhr.readyState) {
 			//case 0: break; // UNSET
 			//case 1: break; // OPENED
 			//case 2: break; // HEADERS_RECEIVED
 			//case 3: // LOADING
 			case 4: // DONE
-				if(xhr.status == 200)
-					this.documentReceived(xhr.responseXML);
-				else
+				if(xhr.status == 200) {
+					if(typeof okcallback === 'function') {
+						if(okcallback(xhr.responseXML.documentElement, xhr) === true)
+							return;
+						this.documentReceived(xhr.responseXML);
+					}
+				} else {
+					if(typeof failcallback === 'function')
+						if(failcallback(xhr) === true)
+							return;
 					this.xhrerror(xhr);
+				}
 			break;
 		}
 	};
 	
 	Con.prototype.documentReceived = function(xdoc) {
 		console.debug("received ", xdoc);
+	};
+	
+	Con.prototype.login = function(pass, okcallback, failcallback) {
+		return new Con.Login(this, pass, okcallback, failcallback);
 	};
 	
 	Con.prototype.xhrerror = function(xhr) {

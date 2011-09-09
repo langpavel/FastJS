@@ -21,7 +21,7 @@
 				var i, l, r;
 				
 				// arter first call right ActiveX object is found;
-				// this function replaced body is replaced with one below
+				// this function body is replaced with one below
 				var f = function(ns, rEl, dt) {
 					if(dt==null) dt = null;
 					var doc = new ActiveXObject(af['FastJS.XML.createNativeDoc ActiveXObject']);
@@ -41,7 +41,7 @@
 					} catch (ex) { /* continue; */ }
 				}
 				
-				// bad news, corresponding ActiveX object not found 
+				// bad news; corresponding ActiveX object not found 
 				
 				af['FastJS.XML.createNativeDoc ActiveXObject'] = 'unknown';
 				//XML.createXMLDoc = FJS.E;
@@ -58,6 +58,21 @@
 			if(v !== null)
 				el.setAttribute(a, v);
 		}
+	};
+	
+	XML.createElement = function(doc, name, attrs, content) {
+		var el = doc.createElement(name);
+		if(typeof attrs !== 'undefined')
+			XML.setAttrs(el, attrs);
+		var tc = typeof content;
+		if(tc !== 'undefined') {
+			if(tc === 'string')
+				el.textContent = content;
+			else
+				throw new Error('Not implemented');
+		}
+			
+		return el;
 	};
 
 })(getFastJS('GLOBAL'), getFastJS(), getFastJS('XML'), getFastJS('features', 'artificials'));
