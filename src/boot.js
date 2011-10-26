@@ -1,7 +1,6 @@
 "use strict";
 
-if(typeof FastJS === 'undefined')
-	FastJS = {};
+var FastJS = (typeof FastJS === 'undefined') ? {} : FastJS;
 
 if(typeof getFastJS === 'undefined') {
 	var getFastJS = (function(){
