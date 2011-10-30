@@ -30,6 +30,7 @@
 	__import('src/classes/XMPP/Connection.js');
 	__import('src/classes/XMPP/Enums.js');
 	__import('src/classes/XMPP/login.js');
+	__import('src/UI/Autocompleter.js');
 
 	__import('src/end.js');
 })();
